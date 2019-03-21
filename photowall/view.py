@@ -16,3 +16,11 @@ def image(image_id):
     if image == None:
         return redirect('/')
     return render_template('pageDetail.html', image = image)
+
+
+@app.route('/profile/<int:user_id>')
+def profile(user_id):
+    user = md.User.query.get(user_id)
+    if user == None:
+        return redirect('/')
+    return render_template('profile.html', user=user)
