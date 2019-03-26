@@ -1,7 +1,8 @@
 # -*- encoding=UTF-8 -*-
 from photowall import app, db
 from photowall import models as md
-from flask import render_template, redirect, request
+from flask import render_template, redirect, request, flash
+import random, hashlib
 
 
 @app.route('/')
@@ -29,14 +30,35 @@ def profile(user_id):
 def regloginpage():
     return render_template('login.html')
 
+def redirect_with_msg(target, msg, category):
+    if msg !=None:
+        flash(msg, category=category)
+    return redirect(target)
 
-@app.route('/reg/')
+
+@app.route('/reg/', methods={'post','get'})
 def reg():
     #request.args
     #request.form
     username = request.values.get('username').strip()
     password = request.values.get('password').strip()
 
+    if username =='' or password == '':
+        return redirect_with_msg('/regloginpage/', '用户名或密码不能为空', 'reglogin')
+
     user = md.User.query.filter_by(username=username).first()
     if user != None:
-        flash(u'用户名已存在', category=ca)
+
+        return redirect_with_msg('/regloginpage/', '用户名已存在', 'reglogin')
+
+
+    #更多判断
+
+    salt = ''.join(random.sample('0123456789abcdefghijklmnABCDEFGHIJKLMN',6))
+    m = hashlib.md5()
+    m.update((password+salt).encode())
+    password = m.hexdigest()
+    user = md.User(username, password, salt)
+    db.session.add(user)
+    db.session.commit()
+    return redirect('/')
