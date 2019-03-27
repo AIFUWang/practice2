@@ -3,6 +3,7 @@ from photowall import app, db
 from photowall import models as md
 from flask import render_template, redirect, request, flash, get_flashed_messages
 import random, hashlib
+from flask_login import login_user, logout_user, current_user, login_required
 
 
 @app.route('/')
@@ -12,6 +13,7 @@ def index():
 
 
 @app.route('/image/<int:image_id>/')
+@login_required
 def image(image_id):
     image = md.Image.query.get(image_id)
     if image == None:
@@ -20,6 +22,7 @@ def image(image_id):
 
 
 @app.route('/profile/<int:user_id>/')
+@login_required
 def profile(user_id):
     user = md.User.query.get(user_id)
     if user == None:
@@ -29,14 +32,39 @@ def profile(user_id):
 @app.route('/regloginpage/')
 def regloginpage():
     msg = ''
-    for m in get_flashed_messages(with_categories=False, category_filter=['relogin']):
+    for m in get_flashed_messages(with_categories=False, category_filter=['reglogin']):#参数一参数二
         msg = msg + m
-    return render_template('login.html', msg=msg)
+    return render_template('login.html', msg=msg, next=request.values.get('next'))
 
 def redirect_with_msg(target, msg, category):
     if msg !=None:
         flash(msg, category=category)
     return redirect(target)
+
+
+@app.route('/login/', methods={'post', 'get'})
+def login():
+    username = request.values.get('username').strip()
+    password = request.values.get('password').strip()
+
+    if username =='' or password == '':
+        return redirect_with_msg('/regloginpage/', u'用户名或密码不能为空', 'reglogin')
+
+    user = md.User.query.filter_by(username=username).first()
+    if user == None:
+        return redirect_with_msg('/regloginpage/', u'用户名不存在', 'reglogin')
+
+    m = hashlib.md5()
+    m.update((password+user.salt).encode())
+    if (m.hexdigest() != user.password):
+        return redirect_with_msg('/regloginpage/', u'密码错误', 'reglogin')
+
+    login_user(user)
+
+    next = request.values.get('next')
+    if next != None and next.startswith('/') > 0:
+        return redirect(next)
+    return redirect('/')
 
 
 @app.route('/reg/', methods={'post','get'})
@@ -64,4 +92,16 @@ def reg():
     user = md.User(username, password, salt)
     db.session.add(user)
     db.session.commit()
+
+    login_user(user)
+
+    next = request.values.get('next')
+    if next != None and next.startswith('/') > 0:
+        return redirect(next)
+    return redirect('/')
+
+
+@app.route('/logout/')
+def logout():
+    logout_user()
     return redirect('/')

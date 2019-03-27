@@ -1,6 +1,6 @@
 # -*- encoding=UTF-8 -*-
 
-from photowall import db
+from photowall import db, login_manager
 import random
 from datetime import datetime
 
@@ -20,7 +20,6 @@ class Comment(db.Model):
 
     def __repr__(self):
         return "Comment %d %s" % (self.id, self.content)
-
 
 
 class Image(db.Model):
@@ -49,6 +48,8 @@ class User(db.Model):
     images = db.relationship('Image', backref='user', lazy='dynamic')
 
 
+
+
     def __init__(self, username, password, salt=''):
         self.username = username
         self.password = password
@@ -57,3 +58,25 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %d %s>' % (self.id, self.username)
+
+    # Flask Login接口
+    def is_authenticated(self):
+        print('is_authenticat')
+        return True
+
+    def is_active(self):
+        print('is_active')
+        return True
+
+    def is_anonymous(self):
+        print('is_anonymous')
+        return False
+
+    def get_id(self):
+        print('get_id')
+        return self.id
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
