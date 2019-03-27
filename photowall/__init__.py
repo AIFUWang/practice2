@@ -6,7 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config.from_pyfile('app.conf')
+app.secret_key = 'nowcoder'
 db = SQLAlchemy(app)
-app.secret_key = 'cowcoder'
+
 
 from photowall import models, view
