@@ -2,7 +2,7 @@
 from photowall import app, db
 from photowall import models as md
 from flask import render_template, redirect, request, flash, get_flashed_messages
-import random, hashlib
+import random, hashlib, json
 from flask_login import login_user, logout_user, current_user, login_required
 
 
@@ -27,7 +27,20 @@ def profile(user_id):
     user = md.User.query.get(user_id)
     if user == None:
         return redirect('/')
-    return render_template('profile.html', user=user)
+    paginate = md.Image.query.filter_by(user_id=user_id).paginate(page=1, per_page=1, error_out=False)
+    return render_template('profile.html', user=user, images=paginate.items)
+
+@app.route('/profile/images/<int:user_id>/<int:page>/<int:per_page>')
+def user_images(user_id, page, per_page):
+    paginate = md.Image.query.filter_by(user_id=user_id).paginate(page=page, per_page=per_page, error_out=False)
+    map = {'has_next':paginate.has_next}
+    images = []
+    for image in paginate.items:
+        imgvo = {'id':image.id, 'url':image.url, 'comment_count':len(image.comments) }
+
+        images.append(imgvo)
+    map['images'] = images
+    return json.dumps(map)
 
 @app.route('/regloginpage/')
 def regloginpage():
